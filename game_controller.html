@@ -3,81 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bluetooth Game Controller</title>
+  <title>DS Controller</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      background-color: #282c34;
-      color: white;
-    }
-    #controller {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      grid-gap: 10px;
+      display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: 50px;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      overscroll-behavior: none;
+      touch-action: none;
     }
-    .button {
+
+    .controller {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .dpad {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dpad button {
+      width: 50px;
+      height: 50px;
+      font-size: 20px;
+    }
+
+    .joystick {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .joystick-pad {
       width: 100px;
       height: 100px;
-      background-color: #61dafb;
-      border: none;
+      background-color: #888;
       border-radius: 50%;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-    .button:active {
-      transform: scale(0.9);
-    }
-    #nintendo-buttons {
-      display: grid;
-      grid-template-areas:
-        "y x"
-        "b a";
-      grid-gap: 20px;
+      display: flex;
       justify-content: center;
       align-items: center;
-      margin: 30px auto;
+      position: relative;
     }
-    #y { grid-area: y; }
-    #x { grid-area: x; }
-    #b { grid-area: b; }
-    #a { grid-area: a; }
+
+    .joystick-center {
+      width: 50px;
+      height: 50px;
+      background-color: #333;
+      border-radius: 50%;
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .buttons button {
+      width: 80px;
+      height: 80px;
+      font-size: 20px;
+    }
+
+    .extra-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .extra-buttons button {
+      width: 80px;
+      height: 80px;
+      font-size: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Bluetooth Game Controller</h1>
-  <button id="connect-btn" style="margin: 20px; padding: 10px 20px; font-size: 16px;">Connect to Bluetooth</button>
-  
-  <div id="controller">
-    <button class="button" id="up">↑</button>
-    <button class="button" id="down">↓</button>
-    <button class="button" id="left">←</button>
-    <button class="button" id="right">→</button>
-  </div>
+  <div class="controller">
+    <button id="connect-btn">Connect Bluetooth</button>
 
-  <div id="nintendo-buttons">
-    <button class="button" id="y" style="background-color: #f39c12;">Y</button>
-    <button class="button" id="x" style="background-color: #8e44ad;">X</button>
-    <button class="button" id="b" style="background-color: #e74c3c;">B</button>
-    <button class="button" id="a" style="background-color: #2ecc71;">A</button>
-  </div>
+    <!-- D-Pad -->
+    <div class="dpad">
+      <button onclick="sendKey('up')">↑</button>
+      <button onclick="sendKey('left')">←</button>
+      <button onclick="sendKey('down')">↓</button>
+      <button onclick="sendKey('right')">→</button>
+    </div>
+    
+    <!-- Joystick -->
+    <div class="joystick">
+      <div class="joystick-pad">
+        <div class="joystick-center"></div>
+      </div>
+    </div>
 
+    <!-- A, B, X, Y Buttons -->
+    <div class="buttons">
+      <button onclick="sendKey('a')" class="controller-button" data-button-name="A">A</button>
+      <button onclick="sendKey('b')" class="controller-button" data-button-name="B">B</button>
+      <button onclick="sendKey('x')" class="controller-button" data-button-name="X">X</button>
+      <button onclick="sendKey('y')" class="controller-button" data-button-name="Y">Y</button>
+    </div>
+
+    <!-- Start, Select, L, R Buttons -->
+    <div class="extra-buttons">
+      <button onclick="sendKey('start')">Start</button>
+      <button onclick="sendKey('select')">Select</button>
+      <button onclick="sendKey('l')">L</button>
+      <button onclick="sendKey('r')">R</button>
+    </div>
+  </div>
   <script>
     let bluetoothDevice;
     let gattServer;
     let gamepadCharacteristic;
 
-    const serviceUuid = 'your-service-uuid'; // Replace with your service UUID
-    const characteristicUuid = 'your-characteristic-uuid'; // Replace with your characteristic UUID
+    const serviceUuid = 'your-service-uuid'; // Replace with your Bluetooth device's service UUID
+    const characteristicUuid = 'your-characteristic-uuid'; // Replace with your Bluetooth characteristic UUID
 
-    async function connectBluetooth() {
+    // Connect to Bluetooth device
+    document.getElementById('connect-btn').addEventListener('click', async () => {
       try {
         console.log("Requesting Bluetooth device...");
         bluetoothDevice = await navigator.bluetooth.requestDevice({
@@ -87,6 +139,7 @@
 
         console.log("Connecting to GATT server...");
         gattServer = await bluetoothDevice.gatt.connect();
+
         const service = await gattServer.getPrimaryService(serviceUuid);
         gamepadCharacteristic = await service.getCharacteristic(characteristicUuid);
 
@@ -94,31 +147,112 @@
       } catch (error) {
         console.error("Bluetooth connection failed:", error);
       }
-    }
+    });
 
-    function sendCommand(command) {
+    // Send key press to Bluetooth device
+    function sendKey(key) {
       if (!gamepadCharacteristic) {
         console.error("No Bluetooth device connected!");
         return;
       }
 
       const encoder = new TextEncoder();
-      const commandData = encoder.encode(command);
+      const command = encoder.encode(key);
 
-      gamepadCharacteristic.writeValue(commandData)
-        .then(() => console.log(`Sent command: ${command}`))
-        .catch(error => console.error("Failed to send command:", error));
+      gamepadCharacteristic.writeValue(command)
+        .then(() => console.log(`Sent key: ${key}`))
+        .catch(error => console.error("Failed to send key:", error));
     }
 
-    document.getElementById("connect-btn").addEventListener("click", connectBluetooth);
+    // Joystick move simulation using dragging
+    function startJoystickDrag(event) {
+      const joystick = document.querySelector('.joystick-pad');
+      const joystickCenter = document.querySelector('.joystick-center');
+      const joystickRect = joystick.getBoundingClientRect();
+      
+      // Calculate the initial touch/mouse position relative to the joystick area
+      const centerX = joystickRect.left + joystickRect.width / 2;
+      const centerY = joystickRect.top + joystickRect.height / 2;
 
-    const buttons = document.querySelectorAll(".button");
-    buttons.forEach(button => {
-      button.addEventListener("click", () => {
-        const command = button.id;
-        sendCommand(command);
-      });
-    });
+      // Handle the movement of the joystick center
+      const moveJoystick = (event) => {
+        let clientX, clientY;
+        
+        // For touch events
+        if (event.touches) {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        } else {
+          // For mouse events
+          clientX = event.clientX;
+          clientY = event.clientY;
+        }
+
+        let deltaX = clientX - centerX;
+        let deltaY = clientY - centerY;
+
+        // Limit the movement within the joystick boundary
+        const maxDistance = joystickRect.width / 2;
+        const distance = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), maxDistance);
+        
+        const angle = Math.atan2(deltaY, deltaX);
+
+        // Calculate new joystick center position within bounds
+        const moveX = Math.cos(angle) * distance;
+        const moveY = Math.sin(angle) * distance;
+
+        joystickCenter.style.transform = `translate(${moveX}px, ${moveY}px)`;
+
+        // Send directional key based on joystick's movement
+        sendJoystickDirection(moveX, moveY);
+      };
+
+      // Add event listeners for dragging and stopping
+      if (event.touches) {
+        document.addEventListener('touchmove', moveJoystick);
+        document.addEventListener('touchend', stopJoystickDrag);
+        document.addEventListener('touchcancel', stopJoystickDrag);
+      } else {
+        document.addEventListener('mousemove', moveJoystick);
+        document.addEventListener('mouseup', stopJoystickDrag);
+        document.addEventListener('mouseleave', stopJoystickDrag);
+      }
+
+      function stopJoystickDrag() {
+        // Remove event listeners for dragging
+        document.removeEventListener('mousemove', moveJoystick);
+        document.removeEventListener('mouseup', stopJoystickDrag);
+        document.removeEventListener('mouseleave', stopJoystickDrag);
+        document.removeEventListener('touchmove', moveJoystick);
+        document.removeEventListener('touchend', stopJoystickDrag);
+        document.removeEventListener('touchcancel', stopJoystickDrag);
+
+        // Reset the joystick center back to the original position when drag ends
+        joystickCenter.style.transform = 'translate(0, 0)';
+      }
+    }
+
+    // Determine joystick movement direction and send it
+    function sendJoystickDirection(moveX, moveY) {
+      // Determine horizontal and vertical movement (simple logic for 4-way direction)
+      if (Math.abs(moveX) > Math.abs(moveY)) {
+        if (moveX > 0) {
+          sendKey('right');
+        } else {
+          sendKey('left');
+        }
+      } else {
+        if (moveY > 0) {
+          sendKey('down');
+        } else {
+          sendKey('up');
+        }
+      }
+    }
+
+    // Add event listener to start dragging the joystick
+    document.querySelector('.joystick-pad').addEventListener('mousedown', startJoystickDrag);
+    document.querySelector('.joystick-pad').addEventListener('touchstart', startJoystickDrag);
   </script>
 </body>
 </html>
