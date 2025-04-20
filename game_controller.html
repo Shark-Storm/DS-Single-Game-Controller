@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bluetooth Game Controller</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #282c34;
+      color: white;
+    }
+    #controller {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 50px;
+    }
+    .button {
+      width: 100px;
+      height: 100px;
+      background-color: #61dafb;
+      border: none;
+      border-radius: 50%;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .button:active {
+      transform: scale(0.9);
+    }
+    #nintendo-buttons {
+      display: grid;
+      grid-template-areas:
+        "y x"
+        "b a";
+      grid-gap: 20px;
+      justify-content: center;
+      align-items: center;
+      margin: 30px auto;
+    }
+    #y { grid-area: y; }
+    #x { grid-area: x; }
+    #b { grid-area: b; }
+    #a { grid-area: a; }
+  </style>
+</head>
+<body>
+  <h1>Bluetooth Game Controller</h1>
+  <button id="connect-btn" style="margin: 20px; padding: 10px 20px; font-size: 16px;">Connect to Bluetooth</button>
+  
+  <div id="controller">
+    <button class="button" id="up">↑</button>
+    <button class="button" id="down">↓</button>
+    <button class="button" id="left">←</button>
+    <button class="button" id="right">→</button>
+  </div>
+
+  <div id="nintendo-buttons">
+    <button class="button" id="y" style="background-color: #f39c12;">Y</button>
+    <button class="button" id="x" style="background-color: #8e44ad;">X</button>
+    <button class="button" id="b" style="background-color: #e74c3c;">B</button>
+    <button class="button" id="a" style="background-color: #2ecc71;">A</button>
+  </div>
+
+  <script>
+    let bluetoothDevice;
+    let gattServer;
+    let gamepadCharacteristic;
+
+    const serviceUuid = 'your-service-uuid'; // Replace with your service UUID
+    const characteristicUuid = 'your-characteristic-uuid'; // Replace with your characteristic UUID
+
+    async function connectBluetooth() {
+      try {
+        console.log("Requesting Bluetooth device...");
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [serviceUuid],
+        });
+
+        console.log("Connecting to GATT server...");
+        gattServer = await bluetoothDevice.gatt.connect();
+        const service = await gattServer.getPrimaryService(serviceUuid);
+        gamepadCharacteristic = await service.getCharacteristic(characteristicUuid);
+
+        console.log("Bluetooth connected!");
+      } catch (error) {
+        console.error("Bluetooth connection failed:", error);
+      }
+    }
+
+    function sendCommand(command) {
+      if (!gamepadCharacteristic) {
+        console.error("No Bluetooth device connected!");
+        return;
+      }
+
+      const encoder = new TextEncoder();
+      const commandData = encoder.encode(command);
+
+      gamepadCharacteristic.writeValue(commandData)
+        .then(() => console.log(`Sent command: ${command}`))
+        .catch(error => console.error("Failed to send command:", error));
+    }
+
+    document.getElementById("connect-btn").addEventListener("click", connectBluetooth);
+
+    const buttons = document.querySelectorAll(".button");
+    buttons.forEach(button => {
+      button.addEventListener("click", () => {
+        const command = button.id;
+        sendCommand(command);
+      });
+    });
+  </script>
+</body>
+</html>
